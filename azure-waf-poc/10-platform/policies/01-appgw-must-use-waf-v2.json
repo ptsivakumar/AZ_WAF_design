@@ -1,0 +1,23 @@
+{
+  "_comment": "Control 4. Aliases used: Microsoft.Network/applicationGateways/sku.name. VERIFY with: az provider show --namespace Microsoft.Network --expand resourceTypes/aliases",
+  "displayName": "Application Gateway must use the WAF_v2 SKU",
+  "description": "WAF policy association is supported only on WAF_v2. Standard_v2 and the retired v1 SKUs cannot carry a WAF policy.",
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "allowedValues": [ "Audit", "Deny", "Disabled" ],
+      "defaultValue": "Audit",
+      "metadata": { "displayName": "Effect" }
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        { "field": "type", "equals": "Microsoft.Network/applicationGateways" },
+        { "field": "Microsoft.Network/applicationGateways/sku.name", "notEquals": "WAF_v2" }
+      ]
+    },
+    "then": { "effect": "[parameters('effect')]" }
+  }
+}

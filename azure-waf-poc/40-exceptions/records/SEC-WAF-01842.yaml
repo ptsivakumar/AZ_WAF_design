@@ -1,0 +1,47 @@
+# ============================================================================
+# Exception record — one file per exception. Reviewed in a pull request.
+#
+# This is the WORKED EXAMPLE from the design proposal, section 10.2, turned
+# into a deployable record. Use it as the template.
+#
+# Before raising one of these, check the decision tree: if a legitimate request
+# is merely being BLOCKED BY A MANAGED RULE, you need an EXCLUSION, not this.
+# ============================================================================
+
+exceptionId: SEC-WAF-01842
+status: approved                 # draft | approved | expired | withdrawn
+application: reporting-api
+environment: production
+
+# Which Azure resource. An exemption is a child object of this resource.
+resourceId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/wafpoc-workload-rg/providers/Microsoft.Network/applicationGateways/wafpoc-agw
+
+# Mitigated = intent met another way, evidenced below.
+# Waiver    = risk temporarily accepted, remediationPlan required.
+category: Mitigated
+
+# WHICH CONTROLS. These are reference IDs from the initiative, and they must
+# match the reference_id values in 10-platform/main.tf exactly.
+# Leaving this empty would exempt the resource from ALL thirteen controls.
+exemptFromControls:
+  - 04-waf-prevention-mode
+
+businessReason: >
+  The reporting API accepts an authenticated expression language in the
+  queryExpression JSON field, which the SQLI rule group scores as an attack.
+  The application cannot change the contract before the next major release.
+
+compensatingControls:
+  - Authenticated callers only
+  - Parameterised database access
+  - Application-side parser with an allow list
+  - Endpoint-specific rate limit
+
+owner: reporting-platform
+securityApprover: cloud-security
+approvedOn: 2026-10-15
+expiryDate: 2027-01-31
+renewalCount: 0
+
+# Required when category is Waiver, or on a second renewal.
+# remediationPlan: "API contract change shipping in release 25.2, March 2027."

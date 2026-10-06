@@ -1,0 +1,9 @@
+// Which requests WOULD be blocked if we flipped to Prevention?
+// Run this before step 4.5. If the count is not explainable, do not flip.
+AzureDiagnostics
+| where TimeGenerated > ago(24h)
+| where Category in ("ApplicationGatewayFirewallLog", "FrontdoorWebApplicationFirewallLog")
+| where action_s in ("Blocked", "Block", "Matched")
+| summarize hits = count() by requestUri_s, ruleId_s, action_s
+| order by hits desc
+| take 50

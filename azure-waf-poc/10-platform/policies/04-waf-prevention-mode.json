@@ -1,0 +1,30 @@
+{
+  "_comment": "Control 5. Microsoft ships a built-in for this ('Web Application Firewall (WAF) should use the specified mode for Application Gateway'). PREFER THE BUILT-IN. This custom version exists only so the PoC can compare built-in and custom behaviour side by side - record which you kept.",
+  "displayName": "WAF policy must be in the required mode",
+  "description": "Detection is permitted only during the 30-day onboarding window. Production target is Prevention.",
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "allowedValues": [ "Audit", "Deny", "Disabled" ],
+      "defaultValue": "Audit"
+    },
+    "requiredMode": {
+      "type": "String",
+      "allowedValues": [ "Prevention", "Detection" ],
+      "defaultValue": "Prevention"
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        { "field": "type", "equals": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies" },
+        {
+          "field": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/policySettings.mode",
+          "notEquals": "[parameters('requiredMode')]"
+        }
+      ]
+    },
+    "then": { "effect": "[parameters('effect')]" }
+  }
+}

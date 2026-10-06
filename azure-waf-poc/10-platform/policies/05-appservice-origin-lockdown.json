@@ -1,0 +1,26 @@
+{
+  "_comment": "Control 9 - the most valuable control and the hardest to express. Aliases: Microsoft.Web/sites/config/web.ipSecurityRestrictionsDefaultAction and .../ipSecurityRestrictions[*]. VERIFY BOTH. The rule flags a web app whose default action is not Deny, i.e. reachable from anywhere regardless of what allow rules exist. It deliberately does NOT try to validate the X-Azure-FDID header contents - that is checked by the bypass test in tests/, not by policy.",
+  "displayName": "App Service must deny public access by default (origin lockdown)",
+  "description": "A WAF that can be bypassed is not a control. A web app behind Front Door or Application Gateway must refuse traffic that did not arrive through it.",
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "allowedValues": [ "Audit", "Deny", "Disabled" ],
+      "defaultValue": "Audit"
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        { "field": "type", "equals": "Microsoft.Web/sites" },
+        { "field": "kind", "notContains": "functionapp" },
+        {
+          "field": "Microsoft.Web/sites/config/web.ipSecurityRestrictionsDefaultAction",
+          "notEquals": "Deny"
+        }
+      ]
+    },
+    "then": { "effect": "[parameters('effect')]" }
+  }
+}

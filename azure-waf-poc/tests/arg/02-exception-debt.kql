@@ -1,0 +1,13 @@
+// EXCEPTION DEBT — the metric that stops the baseline eroding.
+// Report monthly alongside the compliance percentage.
+policyresources
+| where type =~ "microsoft.authorization/policyexemptions"
+| extend expires = todatetime(properties.expiresOn)
+| extend m = properties.metadata
+| extend renewals = toint(m.renewalCount)
+| summarize
+    totalOpen        = countif(expires > now()),
+    pastExpiry       = countif(expires <= now()),
+    expiringIn30Days = countif(expires between (now() .. now(+30d))),
+    renewedMoreThanOnce = countif(renewals >= 2),
+    medianAgeDays    = percentile(datetime_diff('day', now(), todatetime(properties.createdOn)), 50)

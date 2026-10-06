@@ -1,0 +1,22 @@
+# Copy to terraform.tfvars and fill in. Do not commit terraform.tfvars.
+#
+#   az account show --query id -o tsv
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+
+prefix   = "wafpoc"
+location = "westeurope"
+
+# Stage 1 — Contributor only. Leave both false.
+# Stage 2 — set enable_policy = true once Resource Policy Contributor is granted.
+# Stage 3 — set enable_remediation_role = true only if you also hold RBAC Administrator.
+enable_policy           = false
+enable_remediation_role = false
+
+initiative_effect = "Audit"
+
+tags = {
+  purpose    = "waf-poc"
+  owner      = "ccoe"
+  disposable = "true"
+}
