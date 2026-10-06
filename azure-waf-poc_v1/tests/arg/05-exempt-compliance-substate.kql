@@ -1,0 +1,13 @@
+// WHAT WOULD BE NON-COMPLIANT IF THE EXEMPTIONS WERE REMOVED.
+// Azure sets complianceState = Exempt and populates a SUBSTATE showing the
+// state the resource would otherwise have. That substate is the real
+// exception-debt measure - it is the risk currently being carried.
+// NOTE: field names in policyresources for compliance data vary by API
+// version. VERIFY in Resource Graph Explorer before relying on this.
+policyresources
+| where type =~ "microsoft.policyinsights/policystates"
+| where properties.complianceState =~ "Exempt"
+| project resourceId      = tostring(properties.resourceId),
+          policyDefinition = tostring(properties.policyDefinitionName),
+          wouldBe         = tostring(properties.complianceReasonCode),
+          assignment      = tostring(properties.policyAssignmentName)

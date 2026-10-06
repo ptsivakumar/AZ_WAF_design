@@ -1,0 +1,23 @@
+// THE EXCEPTION REGISTER — Azure Resource Graph, not Log Analytics.
+// Run in Portal > Resource Graph Explorer, or: az graph query -q "<this>"
+// This is the monthly report. If it does not match 40-exceptions/records/,
+// someone created an exemption outside the process.
+policyresources
+| where type =~ "microsoft.authorization/policyexemptions"
+| extend m          = properties.metadata
+| extend expires    = todatetime(properties.expiresOn)
+| extend category   = tostring(properties.exemptionCategory)
+| extend controls   = properties.policyDefinitionReferenceIds
+| project
+    exceptionId      = tostring(m.exceptionId),
+    application      = tostring(m.application),
+    category,
+    controls,
+    owner            = tostring(m.owner),
+    approver         = tostring(m.securityApprover),
+    renewals         = toint(m.renewalCount),
+    expires,
+    daysLeft         = datetime_diff('day', expires, now()),
+    scope            = tostring(properties.scope),
+    id
+| order by expires asc

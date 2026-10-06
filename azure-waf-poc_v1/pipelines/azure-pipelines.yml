@@ -1,0 +1,127 @@
+# =============================================================================
+# Azure DevOps pipeline — Azure WAF PoC
+#
+# Stages:
+#   validate  - fmt, init, validate, static analysis (objective 3)
+#   plan      - plan each layer, publish the plan as an artifact
+#   apply     - manual approval, then apply
+#   reconcile - exclusion drift check (objective 4) - FAILS the run on drift
+#
+# Runbook steps 1.2, 3.5 and 4.8.
+# =============================================================================
+trigger:
+  branches: { include: [ main ] }
+  paths:    { include: [ '10-platform-sub/*', '20-modules/*', '30-workload/*' ] }
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: waf-poc                 # holds ARM_* service connection values
+  - name: TF_VERSION
+    value: '1.13.3'
+  - name: TF_IN_AUTOMATION
+    value: 'true'
+
+stages:
+# -----------------------------------------------------------------------------
+- stage: validate
+  displayName: Validate and scan
+  jobs:
+  - job: validate
+    steps:
+    - task: TerraformInstaller@1
+      inputs: { terraformVersion: $(TF_VERSION) }
+
+    - script: terraform fmt -check -recursive
+      displayName: 'terraform fmt'
+
+    - script: |
+        set -e
+        for d in 10-platform-sub 20-modules/waf-policy-appgw 20-modules/waf-policy-afd 30-workload; do
+          echo "== $d"
+          terraform -chdir=$d init -backend=false
+          terraform -chdir=$d validate
+        done
+      displayName: 'terraform validate'
+
+    # Static analysis of our own IaC. A platform that enforces policy-as-code on
+    # the estate while running unscanned code of its own is the first thing an
+    # auditor asks about. Gate on findings. Design proposal section 9.3.
+    - script: |
+        pip install checkov --quiet
+        checkov -d . --framework terraform --compact --quiet \
+          --soft-fail-on LOW,MEDIUM
+      displayName: 'Checkov static analysis'
+
+# -----------------------------------------------------------------------------
+- stage: plan
+  dependsOn: validate
+  jobs:
+  - job: plan
+    steps:
+    - task: TerraformInstaller@1
+      inputs: { terraformVersion: $(TF_VERSION) }
+    - task: TerraformTaskV4@4
+      displayName: 'Plan platform'
+      inputs:
+        command: plan
+        workingDirectory: '10-platform-sub'
+        environmentServiceNameAzureRM: 'waf-poc-platform'
+        commandOptions: '-out=tfplan -input=false'
+    - task: TerraformTaskV4@4
+      displayName: 'Plan workload'
+      inputs:
+        command: plan
+        workingDirectory: '30-workload'
+        environmentServiceNameAzureRM: 'waf-poc-workload'
+        commandOptions: '-out=tfplan -input=false'
+    - publish: $(System.DefaultWorkingDirectory)
+      artifact: tfplans
+
+# -----------------------------------------------------------------------------
+- stage: apply
+  dependsOn: plan
+  jobs:
+  - deployment: apply
+    environment: 'waf-poc'          # attach a manual approval check here
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: TerraformInstaller@1
+            inputs: { terraformVersion: $(TF_VERSION) }
+          - task: TerraformTaskV4@4
+            displayName: 'Apply platform'
+            inputs:
+              command: apply
+              workingDirectory: '10-platform-sub'
+              environmentServiceNameAzureRM: 'waf-poc-platform'
+              commandOptions: '-input=false -auto-approve'
+          - task: TerraformTaskV4@4
+            displayName: 'Apply workload'
+            inputs:
+              command: apply
+              workingDirectory: '30-workload'
+              environmentServiceNameAzureRM: 'waf-poc-workload'
+              commandOptions: '-input=false -auto-approve'
+
+# -----------------------------------------------------------------------------
+- stage: reconcile
+  displayName: Exclusion drift check
+  dependsOn: apply
+  jobs:
+  - job: reconcile
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Reconcile exclusions — fails on drift'
+      inputs:
+        azureSubscription: 'waf-poc-workload'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          set -e
+          terraform -chdir=30-workload output -json intended_exclusions > intended.json
+          chmod +x pipelines/reconcile-exclusions.sh
+          ./pipelines/reconcile-exclusions.sh \
+            "$(RESOURCE_GROUP)" "$(WAF_POLICY_NAME)" intended.json

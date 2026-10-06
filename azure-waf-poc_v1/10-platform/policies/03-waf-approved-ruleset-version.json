@@ -1,0 +1,39 @@
+{
+  "_comment": "Control 6. Targets the WAF policy resource itself. Alias: Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/managedRules.managedRuleSets[*].ruleSetVersion - VERIFY, this alias is long and version-sensitive. Count expression checks that EVERY managed rule set is on an approved version.",
+  "displayName": "WAF policy must use an approved managed rule set version",
+  "description": "Baseline is Microsoft_DefaultRuleSet 2.2. DRS 2.1 is permitted only where the platform does not support 2.2 (Application Gateway for Containers).",
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "allowedValues": [ "Audit", "Deny", "Disabled" ],
+      "defaultValue": "Audit"
+    },
+    "approvedVersions": {
+      "type": "Array",
+      "defaultValue": [ "2.2", "2.1", "1.1" ],
+      "metadata": {
+        "displayName": "Approved rule set versions",
+        "description": "DRS versions plus Bot Manager 1.1. Narrow this list as the estate converges."
+      }
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        { "field": "type", "equals": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies" },
+        {
+          "count": {
+            "field": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/managedRules.managedRuleSets[*]",
+            "where": {
+              "field": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/managedRules.managedRuleSets[*].ruleSetVersion",
+              "notIn": "[parameters('approvedVersions')]"
+            }
+          },
+          "greater": 0
+        }
+      ]
+    },
+    "then": { "effect": "[parameters('effect')]" }
+  }
+}

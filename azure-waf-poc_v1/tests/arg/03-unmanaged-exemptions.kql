@@ -1,0 +1,13 @@
+// EXEMPTIONS CREATED OUTSIDE THE PROCESS.
+// Every legitimate exemption carries an exceptionId in its metadata, because
+// the Terraform module always writes one. Anything without it was created by
+// hand - which should be impossible if the RBAC is right. If this returns
+// rows, the RBAC control has failed and that is a finding.
+policyresources
+| where type =~ "microsoft.authorization/policyexemptions"
+| extend exceptionId = tostring(properties.metadata.exceptionId)
+| where isempty(exceptionId)
+| project name, scope = tostring(properties.scope),
+          category = tostring(properties.exemptionCategory),
+          createdBy = tostring(properties.createdBy),
+          createdOn = todatetime(properties.createdOn), id

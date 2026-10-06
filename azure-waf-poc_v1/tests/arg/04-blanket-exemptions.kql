@@ -1,0 +1,11 @@
+// BLANKET EXEMPTIONS — exempting the whole initiative rather than one control.
+// policyDefinitionReferenceIds empty or absent means the resource is exempt
+// from ALL thirteen controls. This should never happen.
+policyresources
+| where type =~ "microsoft.authorization/policyexemptions"
+| extend refs = properties.policyDefinitionReferenceIds
+| where isnull(refs) or array_length(refs) == 0
+| project name,
+          exceptionId = tostring(properties.metadata.exceptionId),
+          scope = tostring(properties.scope),
+          expires = todatetime(properties.expiresOn), id

@@ -1,0 +1,28 @@
+{
+  "_comment": "Control 4 (second half). Alias: Microsoft.Network/applicationGateways/firewallPolicy.id. A gateway with no policy at ANY scope is non-compliant. Per-listener policies are not visible to this rule - that is a documented limitation to record in the findings report.",
+  "displayName": "Application Gateway must have an associated WAF policy",
+  "description": "A WAF_v2 gateway without a firewallPolicy reference is running without an attached WAF policy.",
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "allowedValues": [ "Audit", "Deny", "Disabled" ],
+      "defaultValue": "Audit"
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        { "field": "type", "equals": "Microsoft.Network/applicationGateways" },
+        { "field": "Microsoft.Network/applicationGateways/sku.name", "equals": "WAF_v2" },
+        {
+          "anyOf": [
+            { "field": "Microsoft.Network/applicationGateways/firewallPolicy.id", "exists": "false" },
+            { "field": "Microsoft.Network/applicationGateways/firewallPolicy.id", "equals": "" }
+          ]
+        }
+      ]
+    },
+    "then": { "effect": "[parameters('effect')]" }
+  }
+}

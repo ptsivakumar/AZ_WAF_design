@@ -1,0 +1,38 @@
+{
+  "_comment": "Control 10. Fails CLOSED - a missing or invalid tag means the resource is treated as requiring protection. Applies to the ingress services, not every resource.",
+  "displayName": "Ingress resources must carry a valid WAF profile tag and an owner",
+  "description": "Classification drives which profile applies. A missing tag must never be the cheap route to an exemption.",
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "allowedValues": [ "Audit", "Deny", "Disabled" ],
+      "defaultValue": "Audit"
+    },
+    "allowedProfiles": {
+      "type": "Array",
+      "defaultValue": [ "web-standard", "api-public", "critical" ]
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "in": [
+            "Microsoft.Network/applicationGateways",
+            "Microsoft.Cdn/profiles"
+          ]
+        },
+        {
+          "anyOf": [
+            { "field": "tags['security-waf-profile']", "exists": "false" },
+            { "field": "tags['security-waf-profile']", "notIn": "[parameters('allowedProfiles')]" },
+            { "field": "tags['application-owner']", "exists": "false" }
+          ]
+        }
+      ]
+    },
+    "then": { "effect": "[parameters('effect')]" }
+  }
+}
