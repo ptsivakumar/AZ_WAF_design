@@ -1,0 +1,11 @@
+// Detection: a WAF policy changed by anything other than the pipeline identity.
+// Step 4.7. This is the control that stops a WAF being quietly switched off.
+// Replace the GUID with the pipeline service principal's object ID.
+let pipeline_principal = "REPLACE-WITH-PIPELINE-SP-OBJECT-ID";
+AzureActivity
+| where TimeGenerated > ago(7d)
+| where OperationNameValue has "APPLICATIONGATEWAYWEBAPPLICATIONFIREWALLPOLICIES/WRITE"
+     or OperationNameValue has "FRONTDOORWEBAPPLICATIONFIREWALLPOLICIES/WRITE"
+| where Caller != pipeline_principal
+| project TimeGenerated, Caller, CallerIpAddress, OperationNameValue, ActivityStatusValue, _ResourceId
+| order by TimeGenerated desc

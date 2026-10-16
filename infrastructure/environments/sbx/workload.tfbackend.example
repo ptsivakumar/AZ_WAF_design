@@ -1,0 +1,9 @@
+# Copy to workload.tfbackend and fill in. DO NOT COMMIT the real one.
+#   terraform init -backend-config=../environments/sbx/workload.tfbackend
+resource_group_name  = "rg-tfstate"
+storage_account_name = "<storage-account>"
+container_name       = "tfstate"
+key                  = "sbx.workload.tfstate"
+subscription_id      = "<subscription-guid>"
+tenant_id            = "<tenant-guid>"
+use_azuread_auth     = true

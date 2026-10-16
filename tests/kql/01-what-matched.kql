@@ -1,0 +1,10 @@
+// What matched, and was it BLOCKED or only MATCHED?
+// Step 4.3. Under anomaly scoring a Warning-level match logs but does not
+// block - triaging a match as a block is the commonest false-positive error.
+AzureDiagnostics
+| where TimeGenerated > ago(1h)
+| where Category in ("ApplicationGatewayFirewallLog", "FrontdoorWebApplicationFirewallLog")
+| extend rule   = coalesce(column_ifexists("ruleName_s", ""), column_ifexists("ruleSetType_s", ""))
+| extend act    = coalesce(column_ifexists("action_s", ""), column_ifexists("policyMode_s", ""))
+| summarize requests = count() by rule, act, Category
+| order by requests desc

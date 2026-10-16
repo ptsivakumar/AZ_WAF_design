@@ -1,0 +1,12 @@
+// Detection: block-rate deviation from the rolling baseline.
+// Step 4.7. Tune the threshold against the PoC baseline before using it.
+let lookback = 7d;
+let bucket   = 1h;
+AzureDiagnostics
+| where TimeGenerated > ago(lookback)
+| where Category in ("ApplicationGatewayFirewallLog", "FrontdoorWebApplicationFirewallLog")
+| summarize blocks = countif(action_s in ("Blocked","Block")), total = count()
+    by bin(TimeGenerated, bucket)
+| extend rate = todouble(blocks) / todouble(total)
+| extend avg_rate = avg(rate) , sd = stdev(rate)
+| where rate > avg_rate + (3 * sd)

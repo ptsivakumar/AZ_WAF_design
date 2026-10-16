@@ -1,0 +1,26 @@
+# Terraform state contains SECRETS IN PLAINTEXT. Never commit it.
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+**/.terraform/*
+*.tfplan
+tfplan
+
+# Real backend config carries subscription and tenant ids.
+*.tfbackend
+!*.tfbackend.example
+
+# Local overrides
+terraform.tfvars
+*.auto.tfvars
+
+# Test output
+*.log
+evidence/
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
