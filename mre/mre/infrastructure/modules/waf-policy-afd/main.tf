@@ -168,6 +168,13 @@ resource "azurerm_cdn_frontdoor_security_policy" "this" {
   name                     = "${var.name}-secpol"
   cdn_frontdoor_profile_id = var.cdn_frontdoor_profile_id
 
+  lifecycle {
+    precondition {
+      condition     = var.cdn_frontdoor_profile_id != null
+      error_message = "cdn_frontdoor_profile_id must be set when associated_domain_ids is non-empty."
+    }
+  }
+
   security_policies {
     firewall {
       cdn_frontdoor_firewall_policy_id = azurerm_cdn_frontdoor_firewall_policy.this.id
