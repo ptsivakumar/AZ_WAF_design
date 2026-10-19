@@ -1,0 +1,50 @@
+# =============================================================================
+# CODEOWNERS
+#
+# This file is the enforcement half of "centrally managed WAF". The priority
+# bands and the exception rules are checked by the pipeline; this is what stops
+# someone editing the central rules themselves.
+#
+# A pull request touching a path below cannot merge until an owner approves it,
+# provided the branch protection rule on main has "Require review from Code
+# Owners" enabled. WITHOUT THAT SETTING THIS FILE IS DOCUMENTATION, NOT A
+# CONTROL. Check it before claiming the control exists:
+#   Settings -> Branches -> main -> Require a pull request before merging
+#                                -> Require review from Code Owners
+#
+# REPLACE THE PLACEHOLDER TEAM BELOW with the real GitHub team slug. A team
+# that does not exist is silently ignored and nothing is enforced.
+# =============================================================================
+
+# ---------------------------------------------------------- central WAF rules
+# The mandatory rules and rate limits applied to every workload. An application
+# team can add rules in band 70-100 through its own tfvars; it cannot reach
+# these.
+infrastructure/workload/central-rules.tf    @<org>/cloud-security
+
+# ------------------------------------------------------------ the gate itself
+# The band checks, the exception validation and the expiry enforcement. Someone
+# who can edit these can grant themselves anything, so they belong to the same
+# owners as the rules.
+infrastructure/workload/exceptions.tf       @<org>/cloud-security
+infrastructure/workload/variables.tf        @<org>/cloud-security
+
+# --------------------------------------------------------------- the modules
+# How a policy is rendered — scoped exclusions, rule set versions, the Front
+# Door override handling.
+infrastructure/modules/waf-policy-appgw/    @<org>/cloud-security
+infrastructure/modules/waf-policy-afd/      @<org>/cloud-security
+
+# ------------------------------------------------------------- this file
+.github/CODEOWNERS                          @<org>/cloud-security
+
+# -----------------------------------------------------------------------------
+# NOT LISTED, ON PURPOSE: environments/*/workload.tfvars
+#
+# That is the application team's file. They own their own rules and their own
+# exception requests, and they should be able to raise a pull request without
+# waiting on security for a change that the pipeline already validates.
+#
+# Security's attention is a finite resource. Spending it on every tfvars edit
+# means it is not available for the changes that actually matter.
+# -----------------------------------------------------------------------------
