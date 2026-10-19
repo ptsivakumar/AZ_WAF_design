@@ -1,6 +1,6 @@
 # Centrally managed WAF with a validated exception flow
 
-Demo runbook — Markus and Ola, Wednesday.
+Demo runbook —  Wednesday.
 
 ---
 
