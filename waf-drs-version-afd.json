@@ -1,0 +1,79 @@
+{
+  "name": "waf-drs-version-afd",
+  "type": "Microsoft.Authorization/policyDefinitions",
+  "properties": {
+    "displayName": "DRS 2.2 rule group should be enabled for Azure Front Door WAF",
+    "policyType": "Custom",
+    "mode": "All",
+    "description": "Mirrors the built-in 'Bot Protection should be enabled for Azure Front Door WAF', but for the Default Rule Set. A Front Door WAF policy with no managed rule set inspects nothing beyond its own custom rules, and one carrying an older Default Rule Set version is missing every protection added since. Note that managed rule sets require Front Door Premium - on Standard this policy will report non-compliant and the fix is the tier upgrade, not a rule set change.",
+    "metadata": {
+      "version": "1.0.0",
+      "category": "Network",
+      "source": "CCoE Cloud Security - WAF baseline"
+    },
+    "parameters": {
+      "ruleSetType": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Managed rule set type",
+          "description": "Microsoft_DefaultRuleSet for DRS. Confirm the exact string against an existing Front Door WAF policy before assigning."
+        },
+        "defaultValue": "Microsoft_DefaultRuleSet"
+      },
+      "allowedRuleSetVersions": {
+        "type": "Array",
+        "metadata": {
+          "displayName": "Approved rule set versions",
+          "description": "Versions considered current on Front Door. See the note in the deployment thread: the Terraform module currently deploys 2.1 on Front Door because of a provider constraint, so assigning this with 2.2 alone will report our own workloads non-compliant until that is resolved."
+        },
+        "defaultValue": [
+          "2.2"
+        ]
+      },
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Audit until the estate is compliant."
+        },
+        "allowedValues": [
+          "Audit",
+          "Deny",
+          "Disabled"
+        ],
+        "defaultValue": "Audit"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Network/frontdoorWebApplicationFirewallPolicies"
+          },
+          {
+            "count": {
+              "field": "Microsoft.Network/frontdoorWebApplicationFirewallPolicies/managedRules.managedRuleSets[*]",
+              "where": {
+                "allOf": [
+                  {
+                    "field": "Microsoft.Network/frontdoorWebApplicationFirewallPolicies/managedRules.managedRuleSets[*].ruleSetType",
+                    "equals": "[parameters('ruleSetType')]"
+                  },
+                  {
+                    "field": "Microsoft.Network/frontdoorWebApplicationFirewallPolicies/managedRules.managedRuleSets[*].ruleSetVersion",
+                    "in": "[parameters('allowedRuleSetVersions')]"
+                  }
+                ]
+              }
+            },
+            "less": 1
+          }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]"
+      }
+    }
+  }
+}
