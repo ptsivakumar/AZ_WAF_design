@@ -1,0 +1,79 @@
+{
+  "name": "waf-drs-version-appgw",
+  "type": "Microsoft.Authorization/policyDefinitions",
+  "properties": {
+    "displayName": "DRS 2.2 rule group should be enabled for Application Gateway WAF",
+    "policyType": "Custom",
+    "mode": "All",
+    "description": "Mirrors the built-in 'Bot Protection should be enabled for Azure Application Gateway WAF', but for the Default Rule Set. A WAF policy with no managed rule set inspects nothing beyond its own custom rules, and one carrying an older Default Rule Set version is missing every protection added since. This policy requires at least one managed rule set of the configured type at an approved version. There is no built-in equivalent: the built-ins check WAF mode, not rule set version.",
+    "metadata": {
+      "version": "1.0.0",
+      "category": "Network",
+      "source": "CCoE Cloud Security - WAF baseline"
+    },
+    "parameters": {
+      "ruleSetType": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Managed rule set type",
+          "description": "Microsoft_DefaultRuleSet for DRS. Confirm the exact string against an existing WAF policy before assigning."
+        },
+        "defaultValue": "Microsoft_DefaultRuleSet"
+      },
+      "allowedRuleSetVersions": {
+        "type": "Array",
+        "metadata": {
+          "displayName": "Approved rule set versions",
+          "description": "Versions considered current. Add a second entry only during a planned upgrade window, and remove it when the window closes."
+        },
+        "defaultValue": [
+          "2.2"
+        ]
+      },
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Audit until the estate is compliant."
+        },
+        "allowedValues": [
+          "Audit",
+          "Deny",
+          "Disabled"
+        ],
+        "defaultValue": "Audit"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies"
+          },
+          {
+            "count": {
+              "field": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/managedRules.managedRuleSets[*]",
+              "where": {
+                "allOf": [
+                  {
+                    "field": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/managedRules.managedRuleSets[*].ruleSetType",
+                    "equals": "[parameters('ruleSetType')]"
+                  },
+                  {
+                    "field": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/managedRules.managedRuleSets[*].ruleSetVersion",
+                    "in": "[parameters('allowedRuleSetVersions')]"
+                  }
+                ]
+              }
+            },
+            "less": 1
+          }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]"
+      }
+    }
+  }
+}
